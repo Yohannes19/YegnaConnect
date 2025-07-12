@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}{{ profile_user.username }}'s Followers | YegnaConnect{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="bg-white rounded-xl shadow-md p-6">
+        <div class="flex items-center gap-3 mb-6">
+            <a href="/profile/{{ profile_user.username }}" class="text-green-600 hover:text-green-700">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"></path>
+                </svg>
+            </a>
+            <h1 class="text-xl font-semibold text-gray-900">{{ profile_user.username }}'s Followers</h1>
+        </div>
+        
+        {% if followers %}
+            <div class="space-y-4">
+                {% for follower in followers %}
+                <div class="flex items-center gap-4 p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition">
+                    <div class="flex-shrink-0">
+                        {% if follower.avatar_url %}
+                            <img src="{{ follower.avatar_url }}" alt="{{ follower.username }}" class="w-12 h-12 rounded-full object-cover">
+                        {% else %}
+                            <img src="https://ui-avatars.com/api/?name={{ follower.username }}&background=E5F4ED&color=2F855A" alt="{{ follower.username }}" class="w-12 h-12 rounded-full">
+                        {% endif %}
+                    </div>
+                    
+                    <div class="flex-1">
+                        <div class="flex items-center gap-3">
+                            <div>
+                                <a href="/profile/{{ follower.username }}" class="font-semibold text-gray-900 hover:text-green-600 transition">
+                                    {{ follower.username }}
+                                </a>
+                                {% if follower.full_name %}
+                                    <div class="text-sm text-gray-600">{{ follower.full_name }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            {% if current_user and current_user.id != follower.id %}
+                                <button class="follow-btn ml-auto px-3 py-1 rounded text-sm font-medium transition"
+                                        data-username="{{ follower.username }}"
+                                        data-following="false">
+                                    Follow
+                                </button>
+                            {% endif %}
+                        </div>
+                        
+                        {% if follower.bio %}
+                            <div class="text-sm text-gray-600 mt-1">{{ follower.bio[:100] }}{% if follower.bio|length > 100 %}...{% endif %}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center text-gray-500 py-8">
+                <div class="text-2xl mb-2">👥</div>
+                <div class="text-lg font-medium mb-2">No followers yet</div>
+                <div>{{ profile_user.username }} doesn't have any followers yet.</div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Follow/Unfollow functionality for followers list
+    document.querySelectorAll('.follow-btn').forEach(function(btn) {
+        btn.addEventListener('click', async function(e) {
+            e.preventDefault();
+            const username = this.getAttribute('data-username');
+            const isFollowing = this.getAttribute('data-following') === 'true';
+            const url = isFollowing ? `/profile/${username}/unfollow` : `/profile/${username}/follow`;
+            
+            try {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    credentials: 'same-origin'
+                });
+                
+                if (res.ok) {
+                    if (isFollowing) {
+                        this.textContent = 'Follow';
+                        this.classList.remove('bg-gray-200', 'text-gray-700');
+                        this.classList.add('bg-green-600', 'text-white');
+                        this.setAttribute('data-following', 'false');
+                    } else {
+                        this.textContent = 'Following';
+                        this.classList.remove('bg-green-600', 'text-white');
+                        this.classList.add('bg-gray-200', 'text-gray-700');
+                        this.setAttribute('data-following', 'true');
+                    }
+                } else {
+                    const data = await res.json();
+                    alert(data.detail || 'Action failed');
+                }
+            } catch (error) {
+                alert('An error occurred');
+            }
+        });
+    });
+});
+</script>
+{% endblock %} 

@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Search | YegnaConnect{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto">
+    <div class="bg-white rounded-xl shadow-md p-6">
+        <h1 class="text-2xl font-bold text-gray-900 mb-6">Search Users</h1>
+        
+        <!-- Search Form -->
+        <form method="get" class="mb-6">
+            <div class="flex gap-2">
+                <input type="text" name="q" value="{{ query or '' }}" 
+                       placeholder="Search by username or name..." 
+                       class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400">
+                <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition">
+                    Search
+                </button>
+            </div>
+        </form>
+        
+        <!-- Search Results -->
+        {% if query %}
+            {% if results %}
+                <div class="space-y-4">
+                    {% for user in results %}
+                    <div class="flex items-center gap-4 p-4 border border-gray-100 rounded-lg hover:bg-gray-50 transition">
+                        <div class="flex-shrink-0">
+                            {% if user.avatar_url %}
+                                <img src="{{ user.avatar_url }}" alt="{{ user.username }}" class="w-12 h-12 rounded-full object-cover">
+                            {% else %}
+                                <img src="https://ui-avatars.com/api/?name={{ user.username }}&background=E5F4ED&color=2F855A" alt="{{ user.username }}" class="w-12 h-12 rounded-full">
+                            {% endif %}
+                        </div>
+                        
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3">
+                                <div>
+                                    <a href="/profile/{{ user.username }}" class="font-semibold text-gray-900 hover:text-green-600 transition">
+                                        {{ user.username }}
+                                    </a>
+                                    {% if user.full_name %}
+                                        <div class="text-sm text-gray-600">{{ user.full_name }}</div>
+                                    {% endif %}
+                                </div>
+                                
+                                <button class="follow-btn ml-auto px-3 py-1 rounded text-sm font-medium transition"
+                                        data-username="{{ user.username }}"
+                                        data-following="{{ 'true' if user.is_following else 'false' }}">
+                                    {% if user.is_following %}Following{% else %}Follow{% endif %}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="text-center text-gray-500 py-8">
+                    <div class="text-2xl mb-2">🔍</div>
+                    <div class="text-lg font-medium mb-2">No users found</div>
+                    <div>Try searching with different keywords.</div>
+                </div>
+            {% endif %}
+        {% else %}
+            <div class="text-center text-gray-500 py-8">
+                <div class="text-2xl mb-2">👥</div>
+                <div class="text-lg font-medium mb-2">Search for users</div>
+                <div>Enter a username or name to find people on YegnaConnect.</div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Follow/Unfollow functionality for search results
+    document.querySelectorAll('.follow-btn').forEach(function(btn) {
+        btn.addEventListener('click', async function(e) {
+            e.preventDefault();
+            const username = this.getAttribute('data-username');
+            const isFollowing = this.getAttribute('data-following') === 'true';
+            const url = isFollowing ? `/profile/${username}/unfollow` : `/profile/${username}/follow`;
+            
+            try {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    credentials: 'same-origin'
+                });
+                
+                if (res.ok) {
+                    if (isFollowing) {
+                        this.textContent = 'Follow';
+                        this.classList.remove('bg-gray-200', 'text-gray-700');
+                        this.classList.add('bg-green-600', 'text-white');
+                        this.setAttribute('data-following', 'false');
+                    } else {
+                        this.textContent = 'Following';
+                        this.classList.remove('bg-green-600', 'text-white');
+                        this.classList.add('bg-gray-200', 'text-gray-700');
+                        this.setAttribute('data-following', 'true');
+                    }
+                } else {
+                    const data = await res.json();
+                    alert(data.detail || 'Action failed');
+                }
+            } catch (error) {
+                alert('An error occurred');
+            }
+        });
+    });
+});
+</script>
+{% endblock %} 

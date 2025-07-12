@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block title %}r/{{ category.name }} | YegnaConnect{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Category Header -->
+    <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+        <div class="flex items-start justify-between mb-4">
+            <div class="flex-1">
+                <div class="flex items-center gap-3 mb-2">
+                    <h1 class="text-2xl font-bold text-gray-900">r/{{ category.name }}</h1>
+                    {% if category.is_nsfw %}
+                    <span class="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">NSFW</span>
+                    {% endif %}
+                    {% if not category.is_public %}
+                    <span class="px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full">Private</span>
+                    {% endif %}
+                </div>
+                <p class="text-lg text-gray-700">{{ category.display_name }}</p>
+            </div>
+            
+            {% if current_user %}
+                {% if is_member %}
+                    <button id="leave-btn" 
+                            class="leave-btn px-4 py-2 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition"
+                            data-category-name="{{ category.name }}">
+                        Leave
+                    </button>
+                {% else %}
+                    <button id="join-btn" 
+                            class="join-btn px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition"
+                            data-category-name="{{ category.name }}">
+                        Join
+                    </button>
+                {% endif %}
+            {% endif %}
+        </div>
+        
+        {% if category.description %}
+        <div class="text-gray-600 mb-4">{{ category.description }}</div>
+        {% endif %}
+        
+        <!-- Category Stats -->
+        <div class="flex items-center gap-6 text-sm text-gray-500 mb-4">
+            <span>{{ stats.posts }} posts</span>
+            <span>{{ stats.members }} members</span>
+            <span>Created {{ category.created_at.strftime('%B %Y') }}</span>
+        </div>
+        
+        <!-- Category Actions -->
+        <div class="flex items-center gap-4">
+            <a href="/category/{{ category.name }}/members" class="text-green-600 hover:text-green-700 text-sm font-medium">
+                View Members
+            </a>
+            {% if user_role in ['admin', 'moderator'] %}
+            <a href="/category/{{ category.name }}/moderate" class="text-orange-600 hover:text-orange-700 text-sm font-medium">
+                Moderate
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Create Post Section -->
+    {% if current_user and is_member %}
+    <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+        <form method="post" action="/posts/create">
+            <input type="hidden" name="category_id" value="{{ category.id }}">
+            <div class="flex items-start gap-4">
+                <img src="https://ui-avatars.com/api/?name={{ current_user.username }}&background=E5F4ED&color=2F855A" alt="User Avatar" class="w-12 h-12 rounded-full">
+                <div class="flex-1">
+                    <textarea name="content" rows="3" required class="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 resize-none" placeholder="Share something with r/{{ category.name }}..."></textarea>
+                    <div class="flex justify-between items-center mt-3">
+                        <div class="text-sm text-gray-500">Posting to r/{{ category.name }}</div>
+                        <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition">Post</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+    {% elif current_user and not is_member %}
+    <div class="bg-gray-50 rounded-xl p-6 mb-6 text-center">
+        <p class="text-gray-600 mb-3">Join r/{{ category.name }} to post in this community</p>
+        <button class="join-btn px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition" data-category-name="{{ category.name }}">
+            Join Community
+        </button>
+    </div>
+    {% endif %}
+    
+    <!-- Posts Section -->
+    <div class="bg-white rounded-xl shadow-md p-6">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">Posts</h2>
+        
+        {% if posts %}
+            <div class="space-y-6">
+                {% for post in posts %}
+                <div class="border-b border-gray-100 pb-6 last:border-b-0">
+                    <div class="flex items-center gap-3 mb-3">
+                        <img src="https://ui-avatars.com/api/?name={{ current_user.username }}&background=E5F4ED&color=2F855A" alt="User Avatar" class="w-10 h-10 rounded-full">
+                        <div class="flex-1">
+                            <a href="/profile/{{ current_user.username }}" class="font-semibold text-gray-800 hover:text-green-600 transition">{{ post.user }}</a>
+                            <div class="text-xs text-gray-500">{{ post.created_at.strftime('%B %d, %Y') }}</div>
+                        </div>
+                    </div>
+                    <div class="text-gray-900 text-lg mb-4">{{ post.content }}</div>
+                    <div class="flex items-center gap-6 text-gray-500">
+                        <span>{{ post.likes_count }} likes</span>
+                        <span>{{ post.comments_count }} comments</span>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center text-gray-500 py-8">
+                <div class="text-2xl mb-2">📝</div>
+                <div class="text-lg font-medium mb-2">No posts yet</div>
+                <div>Be the first to share something in r/{{ category.name }}!</div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Join/Leave functionality
+    const joinBtn = document.getElementById('join-btn');
+    const leaveBtn = document.getElementById('leave-btn');
+    
+    if (joinBtn) {
+        joinBtn.addEventListener('click', async function(e) {
+            e.preventDefault();
+            const categoryName = this.getAttribute('data-category-name');
+            
+            try {
+                const res = await fetch(`/category/${categoryName}/join`, {
+                    method: 'POST',
+                    credentials: 'same-origin'
+                });
+                
+                if (res.ok) {
+                    window.location.reload();
+                } else {
+                    const data = await res.json();
+                    alert(data.detail || 'Failed to join category');
+                }
+            } catch (error) {
+                alert('An error occurred');
+            }
+        });
+    }
+    
+    if (leaveBtn) {
+        leaveBtn.addEventListener('click', async function(e) {
+            e.preventDefault();
+            const categoryName = this.getAttribute('data-category-name');
+            
+            try {
+                const res = await fetch(`/category/${categoryName}/leave`, {
+                    method: 'POST',
+                    credentials: 'same-origin'
+                });
+                
+                if (res.ok) {
+                    window.location.reload();
+                } else {
+                    const data = await res.json();
+                    alert(data.detail || 'Failed to leave category');
+                }
+            } catch (error) {
+                alert('An error occurred');
+            }
+        });
+    }
+});
+</script>
+{% endblock %} 

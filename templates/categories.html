@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Categories | YegnaConnect{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="bg-white rounded-xl shadow-md p-6 mb-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Categories</h1>
+                <p class="text-gray-600 mt-2">Discover and join communities that interest you</p>
+            </div>
+            {% if current_user %}
+            <a href="/category/create" class="px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition">
+                Create Category
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Categories Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {% for category in categories %}
+        <div class="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition">
+            <div class="flex items-start justify-between mb-4">
+                <div>
+                    <h3 class="text-xl font-semibold text-gray-900">
+                        <a href="/category/{{ category.name }}" class="hover:text-green-600 transition">
+                            {{ category.display_name }}
+                        </a>
+                    </h3>
+                    <p class="text-sm text-gray-500">r/{{ category.name }}</p>
+                </div>
+                {% if category.is_nsfw %}
+                <span class="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">NSFW</span>
+                {% endif %}
+            </div>
+            
+            {% if category.description %}
+            <p class="text-gray-600 mb-4">{{ category.description[:150] }}{% if category.description|length > 150 %}...{% endif %}</p>
+            {% endif %}
+            
+            <div class="flex items-center justify-between text-sm text-gray-500 mb-4">
+                <span>{{ category.created_at.strftime('%B %Y') }}</span>
+                {% if not category.is_public %}
+                <span class="text-orange-600">Private</span>
+                {% endif %}
+            </div>
+            
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4 text-sm text-gray-500">
+                    <span>{{ category.posts|length }} posts</span>
+                    <span>{{ category.members|length }} members</span>
+                </div>
+                
+                {% if current_user %}
+                <a href="/category/{{ category.name }}" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 transition">
+                    View
+                </a>
+                {% else %}
+                <a href="/login" class="px-4 py-2 bg-gray-600 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition">
+                    Login to Join
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% else %}
+        <div class="col-span-full text-center py-12">
+            <div class="text-2xl mb-2">🏠</div>
+            <div class="text-lg font-medium mb-2">No categories yet</div>
+            <div class="text-gray-500">Be the first to create a category and start building a community!</div>
+            {% if current_user %}
+            <a href="/category/create" class="inline-block mt-4 px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition">
+                Create First Category
+            </a>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %} 

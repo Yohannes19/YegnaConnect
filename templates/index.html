@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Welcome | YegnaConnect{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="text-center py-12 md:py-20">
+    <h1 class="text-4xl md:text-5xl font-extrabold text-gray-900 mb-4">Connect. Share. Belong.</h1>
+    <p class="text-lg md:text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+        YegnaConnect is a social platform for Ethiopians to connect, share, and belong. Experience real-time feeds, Amharic ↔ English translation, and a safe, welcoming community.
+    </p>
+    <div class="flex flex-col sm:flex-row justify-center gap-4 mb-8">
+        <a href="/register" class="px-8 py-3 bg-green-600 text-white rounded-lg font-semibold shadow hover:bg-green-700 transition">Register Now</a>
+        <a href="/login" class="px-8 py-3 bg-white border border-green-600 text-green-600 rounded-lg font-semibold hover:bg-green-50 transition">Login</a>
+    </div>
+    <img src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80" alt="Ethiopian community" class="mx-auto rounded-xl shadow-lg w-full max-w-xl mb-8">
+</section>
+
+<!-- Features Section -->
+<section class="max-w-4xl mx-auto py-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+    <div class="flex items-start space-x-4">
+        <div class="bg-green-100 text-green-600 rounded-full p-3">
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3"></path><circle cx="12" cy="12" r="10"/></svg>
+        </div>
+        <div>
+            <h3 class="font-bold text-lg">Real-time Feed</h3>
+            <p class="text-gray-600">See new posts instantly and stay connected with your community.</p>
+        </div>
+    </div>
+    <div class="flex items-start space-x-4">
+        <div class="bg-blue-100 text-blue-600 rounded-full p-3">
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 17l4 4 4-4m0-5V3a1 1 0 00-1-1H7a1 1 0 00-1 1v9"></path></svg>
+        </div>
+        <div>
+            <h3 class="font-bold text-lg">Amharic ↔ English Translation</h3>
+            <p class="text-gray-600">Translate posts and comments seamlessly between Amharic and English.</p>
+        </div>
+    </div>
+    <div class="flex items-start space-x-4">
+        <div class="bg-red-100 text-red-600 rounded-full p-3">
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 5.636l-1.414 1.414M6.343 17.657l-1.414 1.414M12 3v2m0 14v2m9-9h-2M5 12H3"></path></svg>
+        </div>
+        <div>
+            <h3 class="font-bold text-lg">Toxicity Detection</h3>
+            <p class="text-gray-600">AI-powered moderation keeps the community safe and welcoming.</p>
+        </div>
+    </div>
+    <div class="flex items-start space-x-4">
+        <div class="bg-yellow-100 text-yellow-600 rounded-full p-3">
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m4 0h-1v-4h-1m-4 0h-1v-4h-1"></path></svg>
+        </div>
+        <div>
+            <h3 class="font-bold text-lg">Mobile Friendly</h3>
+            <p class="text-gray-600">Enjoy a seamless experience on any device, anywhere.</p>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,353 @@
+{% extends "base.html" %}
+{% block title %}Feed | YegnaConnect{% endblock %}
+
+{% block content %}
+<!-- Create Post Box -->
+<div class="bg-white rounded-xl shadow-md p-6 mb-8">
+    <form method="post" action="/posts/create">
+        <div class="flex items-start gap-4">
+            <img src="https://ui-avatars.com/api/?name={{ current_user.username|default('User') }}&background=E5F4ED&color=2F855A" alt="User Avatar" class="w-12 h-12 rounded-full">
+            <div class="flex-1">
+                <textarea name="content" rows="3" required class="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 resize-none" placeholder="What's on your mind, {{ current_user.username|default('User') }}?"></textarea>
+                <div class="flex justify-between items-center mt-3">
+                    <div class="text-sm text-gray-500">Welcome back, {{ current_user.username|default('User') }}!</div>
+                    <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition">Post</button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Feed Posts List -->
+<div class="space-y-6">
+    {% for post in posts %}
+    <div class="bg-white rounded-xl shadow p-6" data-post-id="{{ post.id }}">
+        <div class="flex items-center gap-3 mb-3">
+            <img src="https://ui-avatars.com/api/?name={{ post.user }}&background=E5F4ED&color=2F855A" alt="User Avatar" class="w-10 h-10 rounded-full">
+            <div class="flex-1">
+                <a href="/profile/{{ post.user }}" class="font-semibold text-gray-800 hover:text-green-600 transition">{{ post.user }}</a>
+                <div class="text-xs text-gray-500">{{ post.time }}</div>
+            </div>
+            {% if post.user == current_user.username %}
+            <button class="text-gray-400 hover:text-red-500 transition" title="Delete post">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+            </button>
+            {% endif %}
+        </div>
+        <div class="text-gray-900 text-lg mb-4">{{ post.content }}</div>
+        <div class="flex items-center gap-6 text-gray-500 mb-4">
+            <button class="like-btn flex items-center gap-1 hover:text-green-600 transition {% if post.liked %}text-green-600{% endif %}" data-liked="{{ 'true' if post.liked else 'false' }}">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"></path>
+                </svg>
+                <span class="like-count">{{ post.likes }} Like</span>
+            </button>
+            <button class="comment-toggle-btn flex items-center gap-1 hover:text-green-600 transition">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
+                </svg>
+                <span class="comment-count">{{ post.comments }} Comment</span>
+            </button>
+        </div>
+        
+        <!-- Comments Section -->
+        <div class="comments-section hidden border-t pt-4">
+            <!-- Comment Form -->
+            <div class="mb-4">
+                <form class="comment-form flex gap-3">
+                                            <img src="https://ui-avatars.com/api/?name={{ current_user.username|default('User') }}&background=E5F4ED&color=2F855A" alt="User Avatar" class="w-8 h-8 rounded-full">
+                    <div class="flex-1">
+                        <textarea class="comment-input w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 resize-none" rows="2" placeholder="Write a comment..." required></textarea>
+                        <div class="flex justify-end mt-2">
+                            <button type="submit" class="px-4 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition">Comment</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- Comments List -->
+            <div class="comments-list space-y-3">
+                <!-- Comments will be loaded here -->
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="text-center text-gray-500 py-12">
+        <div class="text-2xl mb-2">👋</div>
+        <div class="text-lg font-medium mb-2">Welcome to YegnaConnect!</div>
+        <div>No posts yet. Be the first to share something with your community.</div>
+    </div>
+    {% endfor %}
+</div>
+
+<script>
+// Get current user ID from template
+const currentUserId = {{ current_user_id  }};
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Like functionality
+    document.querySelectorAll('.like-btn').forEach(function(btn) {
+        btn.addEventListener('click', async function(e) {
+            e.preventDefault();
+            const postDiv = btn.closest('[data-post-id]');
+            const postId = postDiv.getAttribute('data-post-id');
+            const liked = btn.getAttribute('data-liked') === 'true';
+            const url = liked ? `/posts/${postId}/unlike` : `/posts/${postId}/like`;
+            const method = 'POST';
+            const res = await fetch(url, { method, credentials: 'same-origin' });
+            if (res.ok) {
+                let likeCountSpan = btn.querySelector('.like-count');
+                let count = parseInt(likeCountSpan.textContent) || 0;
+                if (liked) {
+                    count = Math.max(0, count - 1);
+                    btn.setAttribute('data-liked', 'false');
+                    btn.classList.remove('text-green-600');
+                } else {
+                    count = count + 1;
+                    btn.setAttribute('data-liked', 'true');
+                    btn.classList.add('text-green-600');
+                }
+                likeCountSpan.textContent = `${count} Like`;
+            } else {
+                const data = await res.json();
+                alert(data.message || 'Action failed');
+            }
+        });
+    });
+
+    // Comment toggle functionality
+    document.querySelectorAll('.comment-toggle-btn').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const postDiv = btn.closest('[data-post-id]');
+            const commentsSection = postDiv.querySelector('.comments-section');
+            commentsSection.classList.toggle('hidden');
+            
+            // Load comments if not already loaded
+            if (!commentsSection.classList.contains('hidden')) {
+                loadComments(postDiv);
+            }
+        });
+    });
+
+    // Comment form submission
+    document.querySelectorAll('.comment-form').forEach(function(form) {
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const postDiv = form.closest('[data-post-id]');
+            const postId = postDiv.getAttribute('data-post-id');
+            const textarea = form.querySelector('.comment-input');
+            const content = textarea.value.trim();
+            
+            if (!content) return;
+            
+            const formData = new FormData();
+            formData.append('content', content);
+            
+            const res = await fetch(`/posts/${postId}/comments`, {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin'
+            });
+            
+            if (res.ok) {
+                textarea.value = '';
+                loadComments(postDiv);
+                updateCommentCount(postDiv, 1);
+            } else {
+                const data = await res.json();
+                alert(data.detail || 'Failed to create comment');
+            }
+        });
+    });
+});
+
+async function loadComments(postDiv) {
+    const postId = postDiv.getAttribute('data-post-id');
+    const commentsList = postDiv.querySelector('.comments-list');
+    
+    try {
+        const res = await fetch(`/posts/${postId}/comments`);
+        const data = await res.json();
+        
+        commentsList.innerHTML = data.comments.map(comment => `
+            <div class="flex gap-3" data-comment-id="${comment.id}">
+                <img src="https://ui-avatars.com/api/?name=${comment.user}&background=E5F4ED&color=2F855A" alt="User Avatar" class="w-6 h-6 rounded-full">
+                <div class="flex-1">
+                    <div class="flex items-center gap-2">
+                        <a href="/profile/${comment.user}" class="font-medium text-sm hover:text-green-600 transition">${comment.user}</a>
+                        <span class="text-xs text-gray-500">${comment.time}</span>
+                        ${comment.user_id === currentUserId ? 
+                            `<button class="delete-comment-btn text-xs text-red-500 hover:text-red-700" data-comment-id="${comment.id}">Delete</button>` : 
+                            ''
+                        }
+                    </div>
+                    <div class="text-sm text-gray-700 mb-2">${comment.content}</div>
+                    <div class="flex items-center gap-3">
+                        <button class="comment-like-btn flex items-center gap-1 hover:text-green-600 transition ${comment.liked ? 'text-green-600' : ''}" data-liked="${comment.liked}" data-comment-id="${comment.id}">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"></path>
+                            </svg>
+                            <span class="comment-like-count text-xs">${comment.likes} Like</span>
+                        </button>
+                        <button class="reply-toggle-btn text-xs text-green-600 hover:text-green-700 transition" data-comment-id="${comment.id}">Reply</button>
+                    </div>
+                    
+                    <!-- Reply Form Section -->
+                    <div class="reply-section hidden mt-3 ml-4 border-l-2 border-gray-200 pl-4" data-reply-section-for="${comment.id}">
+                        <form class="reply-form flex gap-2 mb-3">
+                            <img src="https://ui-avatars.com/api/?name=User&background=E5F4ED&color=2F855A" alt="User Avatar" class="w-5 h-5 rounded-full">
+                            <div class="flex-1">
+                                <textarea class="reply-input w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 resize-none text-sm" rows="2" placeholder="Write a reply..." required></textarea>
+                                <div class="flex justify-end mt-2">
+                                    <button type="submit" class="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition">Reply</button>
+                                </div>
+                            </div>
+                        </form>
+                        <div class="replies-list space-y-3"></div>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+        
+        // Add like/unlike event listeners for comments
+        commentsList.querySelectorAll('.comment-like-btn').forEach(function(btn) {
+            btn.addEventListener('click', async function(e) {
+                e.preventDefault();
+                const commentId = btn.getAttribute('data-comment-id');
+                const liked = btn.getAttribute('data-liked') === 'true';
+                const url = liked ? `/comments/${commentId}/unlike` : `/comments/${commentId}/like`;
+                const method = 'POST';
+                const res = await fetch(url, { method, credentials: 'same-origin' });
+                if (res.ok) {
+                    let likeCountSpan = btn.querySelector('.comment-like-count');
+                    let count = parseInt(likeCountSpan.textContent) || 0;
+                    if (liked) {
+                        count = Math.max(0, count - 1);
+                        btn.setAttribute('data-liked', 'false');
+                        btn.classList.remove('text-green-600');
+                    } else {
+                        count = count + 1;
+                        btn.setAttribute('data-liked', 'true');
+                        btn.classList.add('text-green-600');
+                    }
+                    likeCountSpan.textContent = `${count} Like`;
+                } else {
+                    const data = await res.json();
+                    alert(data.message || 'Action failed');
+                }
+            });
+        });
+
+        // Add reply toggle event listeners
+        commentsList.querySelectorAll('.reply-toggle-btn').forEach(function(btn) {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const commentId = btn.getAttribute('data-comment-id');
+                const replySection = commentsList.querySelector(`[data-reply-section-for="${commentId}"]`);
+                replySection.classList.toggle('hidden');
+                if (!replySection.classList.contains('hidden')) {
+                    loadReplies(replySection, commentId);
+                }
+            });
+        });
+
+        // Add reply form submission event listeners
+        commentsList.querySelectorAll('.reply-form').forEach(function(form) {
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                const replySection = form.closest('.reply-section');
+                const commentId = replySection.getAttribute('data-reply-section-for');
+                const textarea = form.querySelector('.reply-input');
+                const content = textarea.value.trim();
+                if (!content) return;
+                const formData = new FormData();
+                formData.append('content', content);
+                const res = await fetch(`/comments/${commentId}/reply`, {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'same-origin'
+                });
+                if (res.ok) {
+                    textarea.value = '';
+                    loadReplies(replySection, commentId);
+                } else {
+                    const data = await res.json();
+                    alert(data.detail || 'Failed to create reply');
+                }
+            });
+        });
+    
+        // Load replies for visible reply sections
+        commentsList.querySelectorAll('.reply-section:not(.hidden)').forEach(function(replySection) {
+            const commentId = replySection.getAttribute('data-reply-section-for');
+            loadReplies(replySection, commentId);
+        });
+
+        // Add delete comment event listeners
+        commentsList.querySelectorAll('.delete-comment-btn').forEach(function(btn) {
+            btn.addEventListener('click', async function(e) {
+                e.preventDefault();
+                const commentId = btn.getAttribute('data-comment-id');
+                const res = await fetch(`/comments/${commentId}`, {
+                    method: 'DELETE',
+                    credentials: 'same-origin'
+                });
+                
+                if (res.ok) {
+                    btn.closest('[data-comment-id]').remove();
+                    updateCommentCount(postDiv, -1);
+                } else {
+                    alert('Failed to delete comment');
+                }
+            });
+        });
+    } catch (error) {
+        commentsList.innerHTML = '<div class="text-gray-500 text-sm">Failed to load comments</div>';
+    }
+}
+
+function updateCommentCount(postDiv, change) {
+    const commentCountSpan = postDiv.querySelector('.comment-count');
+    let count = parseInt(commentCountSpan.textContent) || 0;
+    count = Math.max(0, count + change);
+    commentCountSpan.textContent = `${count} Comment`;
+}
+
+async function loadReplies(replySection, commentId) {
+    const repliesList = replySection.querySelector('.replies-list');
+    try {
+        const res = await fetch(`/comments/${commentId}/replies`);
+        const data = await res.json();
+        repliesList.innerHTML = data.replies.map(reply => `
+            <div class="flex gap-2" data-reply-id="${reply.id}">
+                <img src="https://ui-avatars.com/api/?name=${reply.user}&background=E5F4ED&color=2F855A" alt="User Avatar" class="w-5 h-5 rounded-full">
+                <div class="flex-1">
+                    <div class="flex items-center gap-2">
+                        <span class="font-medium text-xs">${reply.user}</span>
+                        <span class="text-xs text-gray-500">${reply.time}</span>
+                        ${reply.user_id === currentUserId ? 
+                            `<button class="delete-reply-btn text-xs text-red-500 hover:text-red-700" data-reply-id="${reply.id}">Delete</button>` : 
+                            ''
+                        }
+                    </div>
+                    <div class="text-xs text-gray-700 mb-2">${reply.content}</div>
+                    <div class="flex items-center gap-2">
+                        <button class="reply-like-btn flex items-center gap-1 hover:text-green-600 transition ${reply.liked ? 'text-green-600' : ''}" data-liked="${reply.liked}" data-reply-id="${reply.id}">
+                            <svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"></path>
+                            </svg>
+                            <span class="reply-like-count text-xs">${reply.likes} Like</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    } catch (error) {
+        repliesList.innerHTML = '<div class="text-gray-500 text-xs">Failed to load replies</div>';
+    }
+}
+</script>
+{% endblock %}
