@@ -4,11 +4,18 @@
 {% block content %}
 <!-- Create Post Box -->
 <div class="bg-white rounded-xl shadow-md p-6 mb-8">
-    <form method="post" action="/posts/create">
+    <form method="post" action="/posts/create" id="postForm">
         <div class="flex items-start gap-4">
             <img src="https://ui-avatars.com/api/?name={{ current_user.username|default('User') }}&background=E5F4ED&color=2F855A" alt="User Avatar" class="w-12 h-12 rounded-full">
             <div class="flex-1">
                 <textarea name="content" rows="3" required class="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 resize-none" placeholder="What's on your mind, {{ current_user.username|default('User') }}?"></textarea>
+                
+                <!-- AI Analysis Preview -->
+                <div id="aiPreview" class="hidden mt-3 p-3 bg-gray-50 rounded-lg">
+                    <div class="text-sm text-gray-600 mb-2">🤖 AI Analysis Preview:</div>
+                    <div id="aiResults" class="text-sm"></div>
+                </div>
+                
                 <div class="flex justify-between items-center mt-3">
                     <div class="text-sm text-gray-500">Welcome back, {{ current_user.username|default('User') }}!</div>
                     <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition">Post</button>
@@ -36,6 +43,39 @@
             </button>
             {% endif %}
         </div>
+        
+        <!-- AI Analysis Results -->
+        {% if post.ai_processed %}
+        <div class="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <div class="flex items-center gap-2 mb-2">
+                <span class="text-blue-600">🤖</span>
+                <span class="text-sm font-medium text-blue-800">AI Analysis</span>
+            </div>
+            <div class="grid grid-cols-2 gap-4 text-xs">
+                <div>
+                    <span class="font-medium">Moderation:</span> 
+                    <span class="{% if post.moderation_score >= 70 %}text-green-600{% elif post.moderation_score >= 50 %}text-yellow-600{% else %}text-red-600{% endif %}">
+                        {{ post.moderation_score }}/100
+                    </span>
+                </div>
+                <div>
+                    <span class="font-medium">Sentiment:</span> 
+                    <span class="{% if post.sentiment_score >= 70 %}text-green-600{% elif post.sentiment_score >= 50 %}text-yellow-600{% else %}text-red-600{% endif %}">
+                        {{ post.sentiment_score }}/100
+                    </span>
+                </div>
+            </div>
+            {% if post.warnings %}
+            <div class="mt-2">
+                <div class="text-xs font-medium text-red-600 mb-1">⚠️ Warnings:</div>
+                {% for warning in post.warnings %}
+                <div class="text-xs text-red-600">{{ warning }}</div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+        
         <div class="text-gray-900 text-lg mb-4">{{ post.content }}</div>
         <div class="flex items-center gap-6 text-gray-500 mb-4">
             <button class="like-btn flex items-center gap-1 hover:text-green-600 transition {% if post.liked %}text-green-600{% endif %}" data-liked="{{ 'true' if post.liked else 'false' }}">
@@ -57,9 +97,16 @@
             <!-- Comment Form -->
             <div class="mb-4">
                 <form class="comment-form flex gap-3">
-                                            <img src="https://ui-avatars.com/api/?name={{ current_user.username|default('User') }}&background=E5F4ED&color=2F855A" alt="User Avatar" class="w-8 h-8 rounded-full">
+                    <img src="https://ui-avatars.com/api/?name={{ current_user.username|default('User') }}&background=E5F4ED&color=2F855A" alt="User Avatar" class="w-8 h-8 rounded-full">
                     <div class="flex-1">
                         <textarea class="comment-input w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 resize-none" rows="2" placeholder="Write a comment..." required></textarea>
+                        
+                        <!-- Comment AI Preview -->
+                        <div class="comment-ai-preview hidden mt-2 p-2 bg-gray-50 rounded text-xs">
+                            <div class="text-gray-600 mb-1">🤖 AI Analysis:</div>
+                            <div class="comment-ai-results"></div>
+                        </div>
+                        
                         <div class="flex justify-end mt-2">
                             <button type="submit" class="px-4 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition">Comment</button>
                         </div>
@@ -84,9 +131,87 @@
 
 <script>
 // Get current user ID from template
-const currentUserId = {{ current_user_id  }};
+const currentUserId = {{ current_user_id }};
 
 document.addEventListener('DOMContentLoaded', function() {
+    // AI Analysis for Post Creation
+    const postForm = document.getElementById('postForm');
+    const postTextarea = postForm.querySelector('textarea[name="content"]');
+    const aiPreview = document.getElementById('aiPreview');
+    const aiResults = document.getElementById('aiResults');
+    
+    let analysisTimeout;
+    
+    postTextarea.addEventListener('input', function() {
+        clearTimeout(analysisTimeout);
+        const content = this.value.trim();
+        
+        if (content.length > 10) {
+            analysisTimeout = setTimeout(async () => {
+                try {
+                    const formData = new FormData();
+                    formData.append('content', content);
+                    
+                    const response = await fetch('/ai/analyze-post', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        const analysis = data.analysis;
+                        
+                        let resultsHtml = `
+                            <div class="grid grid-cols-2 gap-2 text-xs">
+                                <div>Sentiment: <span class="font-medium">${analysis.sentiment.sentiment}</span></div>
+                                <div>Emotion: <span class="font-medium">${analysis.sentiment.emotion}</span></div>
+                                <div>Moderation: <span class="font-medium ${analysis.moderation.is_appropriate ? 'text-green-600' : 'text-red-600'}">${analysis.moderation.is_appropriate ? 'Appropriate' : 'Inappropriate'}</span></div>
+                                <div>Overall: <span class="font-medium">${Math.round(analysis.overall_score * 100)}%</span></div>
+                            </div>
+                        `;
+                        
+                        if (analysis.recommendations.length > 0) {
+                            resultsHtml += `<div class="mt-2 text-red-600">⚠️ ${analysis.recommendations[0]}</div>`;
+                        }
+                        
+                        aiResults.innerHTML = resultsHtml;
+                        aiPreview.classList.remove('hidden');
+                    }
+                } catch (error) {
+                    console.error('AI analysis failed:', error);
+                }
+            }, 1000); // Wait 1 second after user stops typing
+        } else {
+            aiPreview.classList.add('hidden');
+        }
+    });
+    
+    // Post form submission with AI warnings
+    postForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const response = await fetch('/posts/create', {
+            method: 'POST',
+            body: formData
+        });
+        
+        if (response.ok) {
+            window.location.reload();
+        } else {
+            const data = await response.json();
+            if (data.warnings && data.warnings.length > 0) {
+                const warningMessage = data.warnings.join('\n');
+                if (confirm(`⚠️ Content Warnings:\n${warningMessage}\n\nDo you want to post anyway?`)) {
+                    // User chose to post anyway
+                    window.location.reload();
+                }
+            } else {
+                alert(data.message || 'Failed to create post');
+            }
+        }
+    });
+
     // Like functionality
     document.querySelectorAll('.like-btn').forEach(function(btn) {
         btn.addEventListener('click', async function(e) {
@@ -132,13 +257,60 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Comment form submission
+    // Comment form submission with AI analysis
     document.querySelectorAll('.comment-form').forEach(function(form) {
+        const textarea = form.querySelector('.comment-input');
+        const aiPreview = form.querySelector('.comment-ai-preview');
+        const aiResults = form.querySelector('.comment-ai-results');
+        
+        let commentAnalysisTimeout;
+        
+        textarea.addEventListener('input', function() {
+            clearTimeout(commentAnalysisTimeout);
+            const content = this.value.trim();
+            
+            if (content.length > 5) {
+                commentAnalysisTimeout = setTimeout(async () => {
+                    try {
+                        const formData = new FormData();
+                        formData.append('content', content);
+                        
+                        const response = await fetch('/ai/analyze-post', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        
+                        if (response.ok) {
+                            const data = await response.json();
+                            const analysis = data.analysis;
+                            
+                            let resultsHtml = `
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>Sentiment: <span class="font-medium">${analysis.sentiment.sentiment}</span></div>
+                                    <div>Moderation: <span class="font-medium ${analysis.moderation.is_appropriate ? 'text-green-600' : 'text-red-600'}">${analysis.moderation.is_appropriate ? 'OK' : 'Warning'}</span></div>
+                                </div>
+                            `;
+                            
+                            if (analysis.recommendations.length > 0) {
+                                resultsHtml += `<div class="mt-1 text-red-600">⚠️ ${analysis.recommendations[0]}</div>`;
+                            }
+                            
+                            aiResults.innerHTML = resultsHtml;
+                            aiPreview.classList.remove('hidden');
+                        }
+                    } catch (error) {
+                        console.error('Comment AI analysis failed:', error);
+                    }
+                }, 800);
+            } else {
+                aiPreview.classList.add('hidden');
+            }
+        });
+        
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
             const postDiv = form.closest('[data-post-id]');
             const postId = postDiv.getAttribute('data-post-id');
-            const textarea = form.querySelector('.comment-input');
             const content = textarea.value.trim();
             
             if (!content) return;
@@ -153,12 +325,22 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             if (res.ok) {
-                textarea.value = '';
-                loadComments(postDiv);
-                updateCommentCount(postDiv, 1);
+                const data = await res.json();
+                if (data.warnings && data.warnings.length > 0) {
+                    const warningMessage = data.warnings.join('\n');
+                    if (confirm(`⚠️ Comment Warnings:\n${warningMessage}\n\nDo you want to post anyway?`)) {
+                        textarea.value = '';
+                        loadComments(postDiv);
+                        updateCommentCount(postDiv, 1);
+                    }
+                } else {
+                    textarea.value = '';
+                    loadComments(postDiv);
+                    updateCommentCount(postDiv, 1);
+                }
             } else {
                 const data = await res.json();
-                alert(data.detail || 'Failed to create comment');
+                alert(data.message || 'Failed to create comment');
             }
         });
     });
@@ -184,6 +366,25 @@ async function loadComments(postDiv) {
                             ''
                         }
                     </div>
+                    
+                    ${comment.ai_processed ? `
+                        <div class="mb-2 p-2 bg-blue-50 border border-blue-200 rounded text-xs">
+                            <div class="flex items-center gap-1 mb-1">
+                                <span class="text-blue-600">🤖</span>
+                                <span class="text-blue-800 font-medium">AI Analysis</span>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <div>Moderation: <span class="font-medium ${comment.moderation_score >= 70 ? 'text-green-600' : comment.moderation_score >= 50 ? 'text-yellow-600' : 'text-red-600'}">${comment.moderation_score}/100</span></div>
+                                <div>Sentiment: <span class="font-medium ${comment.sentiment_score >= 70 ? 'text-green-600' : comment.sentiment_score >= 50 ? 'text-yellow-600' : 'text-red-600'}">${comment.sentiment_score}/100</span></div>
+                            </div>
+                            ${comment.warnings && comment.warnings.length > 0 ? `
+                                <div class="mt-1 text-red-600">
+                                    ${comment.warnings.map(w => `⚠️ ${w}`).join('')}
+                                </div>
+                            ` : ''}
+                        </div>
+                    ` : ''}
+                    
                     <div class="text-sm text-gray-700 mb-2">${comment.content}</div>
                     <div class="flex items-center gap-3">
                         <button class="comment-like-btn flex items-center gap-1 hover:text-green-600 transition ${comment.liked ? 'text-green-600' : ''}" data-liked="${comment.liked}" data-comment-id="${comment.id}">
@@ -198,99 +399,109 @@ async function loadComments(postDiv) {
                     <!-- Reply Form Section -->
                     <div class="reply-section hidden mt-3 ml-4 border-l-2 border-gray-200 pl-4" data-reply-section-for="${comment.id}">
                         <form class="reply-form flex gap-2 mb-3">
-                            <img src="https://ui-avatars.com/api/?name=User&background=E5F4ED&color=2F855A" alt="User Avatar" class="w-5 h-5 rounded-full">
-                            <div class="flex-1">
-                                <textarea class="reply-input w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400 resize-none text-sm" rows="2" placeholder="Write a reply..." required></textarea>
-                                <div class="flex justify-end mt-2">
-                                    <button type="submit" class="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition">Reply</button>
-                                </div>
-                            </div>
+                            <textarea class="reply-input flex-1 px-2 py-1 border rounded text-xs resize-none" rows="2" placeholder="Write a reply..." required></textarea>
+                            <button type="submit" class="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition">Reply</button>
                         </form>
-                        <div class="replies-list space-y-3"></div>
+                    </div>
+                    
+                    <!-- Replies List -->
+                    <div class="replies-list ml-4 border-l-2 border-gray-200 pl-4 mt-2" data-replies-for="${comment.id}">
+                        <!-- Replies will be loaded here -->
                     </div>
                 </div>
             </div>
         `).join('');
         
-        // Add like/unlike event listeners for comments
-        commentsList.querySelectorAll('.comment-like-btn').forEach(function(btn) {
-            btn.addEventListener('click', async function(e) {
-                e.preventDefault();
-                const commentId = btn.getAttribute('data-comment-id');
-                const liked = btn.getAttribute('data-liked') === 'true';
-                const url = liked ? `/comments/${commentId}/unlike` : `/comments/${commentId}/like`;
-                const method = 'POST';
-                const res = await fetch(url, { method, credentials: 'same-origin' });
-                if (res.ok) {
-                    let likeCountSpan = btn.querySelector('.comment-like-count');
-                    let count = parseInt(likeCountSpan.textContent) || 0;
-                    if (liked) {
-                        count = Math.max(0, count - 1);
-                        btn.setAttribute('data-liked', 'false');
-                        btn.classList.remove('text-green-600');
-                    } else {
-                        count = count + 1;
-                        btn.setAttribute('data-liked', 'true');
-                        btn.classList.add('text-green-600');
-                    }
-                    likeCountSpan.textContent = `${count} Like`;
-                } else {
-                    const data = await res.json();
-                    alert(data.message || 'Action failed');
-                }
-            });
-        });
+        // Add event listeners for new comments
+        addCommentEventListeners(commentsList);
+        
+    } catch (error) {
+        console.error('Failed to load comments:', error);
+    }
+}
 
-        // Add reply toggle event listeners
-        commentsList.querySelectorAll('.reply-toggle-btn').forEach(function(btn) {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                const commentId = btn.getAttribute('data-comment-id');
-                const replySection = commentsList.querySelector(`[data-reply-section-for="${commentId}"]`);
-                replySection.classList.toggle('hidden');
-                if (!replySection.classList.contains('hidden')) {
-                    loadReplies(replySection, commentId);
-                }
-            });
-        });
-
-        // Add reply form submission event listeners
-        commentsList.querySelectorAll('.reply-form').forEach(function(form) {
-            form.addEventListener('submit', async function(e) {
-                e.preventDefault();
-                const replySection = form.closest('.reply-section');
-                const commentId = replySection.getAttribute('data-reply-section-for');
-                const textarea = form.querySelector('.reply-input');
-                const content = textarea.value.trim();
-                if (!content) return;
-                const formData = new FormData();
-                formData.append('content', content);
-                const res = await fetch(`/comments/${commentId}/reply`, {
-                    method: 'POST',
-                    body: formData,
-                    credentials: 'same-origin'
-                });
-                if (res.ok) {
-                    textarea.value = '';
-                    loadReplies(replySection, commentId);
+function addCommentEventListeners(container) {
+    // Comment like functionality
+    container.querySelectorAll('.comment-like-btn').forEach(function(btn) {
+        btn.addEventListener('click', async function(e) {
+            e.preventDefault();
+            const commentId = btn.getAttribute('data-comment-id');
+            const liked = btn.getAttribute('data-liked') === 'true';
+            const url = liked ? `/comments/${commentId}/unlike` : `/comments/${commentId}/like`;
+            
+            const res = await fetch(url, { method: 'POST', credentials: 'same-origin' });
+            if (res.ok) {
+                let likeCountSpan = btn.querySelector('.comment-like-count');
+                let count = parseInt(likeCountSpan.textContent) || 0;
+                if (liked) {
+                    count = Math.max(0, count - 1);
+                    btn.setAttribute('data-liked', 'false');
+                    btn.classList.remove('text-green-600');
                 } else {
-                    const data = await res.json();
-                    alert(data.detail || 'Failed to create reply');
+                    count = count + 1;
+                    btn.setAttribute('data-liked', 'true');
+                    btn.classList.add('text-green-600');
                 }
-            });
+                likeCountSpan.textContent = `${count} Like`;
+            }
         });
+    });
     
-        // Load replies for visible reply sections
-        commentsList.querySelectorAll('.reply-section:not(.hidden)').forEach(function(replySection) {
-            const commentId = replySection.getAttribute('data-reply-section-for');
-            loadReplies(replySection, commentId);
+    // Reply toggle functionality
+    container.querySelectorAll('.reply-toggle-btn').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const commentId = btn.getAttribute('data-comment-id');
+            const replySection = document.querySelector(`[data-reply-section-for="${commentId}"]`);
+            replySection.classList.toggle('hidden');
         });
-
-        // Add delete comment event listeners
-        commentsList.querySelectorAll('.delete-comment-btn').forEach(function(btn) {
-            btn.addEventListener('click', async function(e) {
-                e.preventDefault();
-                const commentId = btn.getAttribute('data-comment-id');
+    });
+    
+    // Reply form submission
+    container.querySelectorAll('.reply-form').forEach(function(form) {
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const commentId = form.closest('[data-comment-id]').getAttribute('data-comment-id');
+            const textarea = form.querySelector('.reply-input');
+            const content = textarea.value.trim();
+            
+            if (!content) return;
+            
+            const formData = new FormData();
+            formData.append('content', content);
+            
+            const res = await fetch(`/comments/${commentId}/reply`, {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin'
+            });
+            
+            if (res.ok) {
+                const data = await res.json();
+                if (data.warnings && data.warnings.length > 0) {
+                    const warningMessage = data.warnings.join('\n');
+                    if (confirm(`⚠️ Reply Warnings:\n${warningMessage}\n\nDo you want to post anyway?`)) {
+                        textarea.value = '';
+                        loadReplies(commentId);
+                    }
+                } else {
+                    textarea.value = '';
+                    loadReplies(commentId);
+                }
+            } else {
+                const data = await res.json();
+                alert(data.message || 'Failed to create reply');
+            }
+        });
+    });
+    
+    // Delete comment functionality
+    container.querySelectorAll('.delete-comment-btn').forEach(function(btn) {
+        btn.addEventListener('click', async function(e) {
+            e.preventDefault();
+            const commentId = btn.getAttribute('data-comment-id');
+            
+            if (confirm('Are you sure you want to delete this comment?')) {
                 const res = await fetch(`/comments/${commentId}`, {
                     method: 'DELETE',
                     credentials: 'same-origin'
@@ -298,14 +509,37 @@ async function loadComments(postDiv) {
                 
                 if (res.ok) {
                     btn.closest('[data-comment-id]').remove();
-                    updateCommentCount(postDiv, -1);
+                    updateCommentCount(btn.closest('[data-post-id]'), -1);
                 } else {
                     alert('Failed to delete comment');
                 }
-            });
+            }
         });
+    });
+}
+
+async function loadReplies(commentId) {
+    const repliesContainer = document.querySelector(`[data-replies-for="${commentId}"]`);
+    
+    try {
+        const res = await fetch(`/comments/${commentId}/replies`);
+        const data = await res.json();
+        
+        repliesContainer.innerHTML = data.replies.map(reply => `
+            <div class="flex gap-2 mb-2" data-reply-id="${reply.id}">
+                <img src="https://ui-avatars.com/api/?name=${reply.user}&background=E5F4ED&color=2F855A" alt="User Avatar" class="w-5 h-5 rounded-full">
+                <div class="flex-1">
+                    <div class="flex items-center gap-2">
+                        <a href="/profile/${reply.user}" class="font-medium text-xs hover:text-green-600 transition">${reply.user}</a>
+                        <span class="text-xs text-gray-500">${reply.time}</span>
+                    </div>
+                    <div class="text-xs text-gray-700">${reply.content}</div>
+                </div>
+            </div>
+        `).join('');
+        
     } catch (error) {
-        commentsList.innerHTML = '<div class="text-gray-500 text-sm">Failed to load comments</div>';
+        console.error('Failed to load replies:', error);
     }
 }
 
@@ -313,41 +547,7 @@ function updateCommentCount(postDiv, change) {
     const commentCountSpan = postDiv.querySelector('.comment-count');
     let count = parseInt(commentCountSpan.textContent) || 0;
     count = Math.max(0, count + change);
-    commentCountSpan.textContent = `${count} Comment`;
-}
-
-async function loadReplies(replySection, commentId) {
-    const repliesList = replySection.querySelector('.replies-list');
-    try {
-        const res = await fetch(`/comments/${commentId}/replies`);
-        const data = await res.json();
-        repliesList.innerHTML = data.replies.map(reply => `
-            <div class="flex gap-2" data-reply-id="${reply.id}">
-                <img src="https://ui-avatars.com/api/?name=${reply.user}&background=E5F4ED&color=2F855A" alt="User Avatar" class="w-5 h-5 rounded-full">
-                <div class="flex-1">
-                    <div class="flex items-center gap-2">
-                        <span class="font-medium text-xs">${reply.user}</span>
-                        <span class="text-xs text-gray-500">${reply.time}</span>
-                        ${reply.user_id === currentUserId ? 
-                            `<button class="delete-reply-btn text-xs text-red-500 hover:text-red-700" data-reply-id="${reply.id}">Delete</button>` : 
-                            ''
-                        }
-                    </div>
-                    <div class="text-xs text-gray-700 mb-2">${reply.content}</div>
-                    <div class="flex items-center gap-2">
-                        <button class="reply-like-btn flex items-center gap-1 hover:text-green-600 transition ${reply.liked ? 'text-green-600' : ''}" data-liked="${reply.liked}" data-reply-id="${reply.id}">
-                            <svg class="h-3 w-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"></path>
-                            </svg>
-                            <span class="reply-like-count text-xs">${reply.likes} Like</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `).join('');
-    } catch (error) {
-        repliesList.innerHTML = '<div class="text-gray-500 text-xs">Failed to load replies</div>';
-    }
+    commentCountSpan.textContent = `${count} Comment${count !== 1 ? 's' : ''}`;
 }
 </script>
 {% endblock %}

@@ -5,7 +5,7 @@ from fastapi.templating import Jinja2Templates
 from starlette.responses import HTMLResponse
 
 import os
-from routes import auth, feed, profile, search, category
+from routes import auth, feed, profile, search, category, ai
 
 app = FastAPI(title="YegnaConnect API", version="0.1.0")
 
@@ -30,6 +30,7 @@ app.include_router(feed.router)
 app.include_router(profile.router)
 app.include_router(search.router)
 app.include_router(category.router)
+app.include_router(ai.router)
 
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
