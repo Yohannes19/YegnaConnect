@@ -42,40 +42,7 @@
                 </svg>
             </button>
             {% endif %}
-        </div>
-        
-        <!-- AI Analysis Results -->
-        {% if post.ai_processed %}
-        <div class="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <div class="flex items-center gap-2 mb-2">
-                <span class="text-blue-600">🤖</span>
-                <span class="text-sm font-medium text-blue-800">AI Analysis</span>
-            </div>
-            <div class="grid grid-cols-2 gap-4 text-xs">
-                <div>
-                    <span class="font-medium">Moderation:</span> 
-                    <span class="{% if post.moderation_score >= 70 %}text-green-600{% elif post.moderation_score >= 50 %}text-yellow-600{% else %}text-red-600{% endif %}">
-                        {{ post.moderation_score }}/100
-                    </span>
-                </div>
-                <div>
-                    <span class="font-medium">Sentiment:</span> 
-                    <span class="{% if post.sentiment_score >= 70 %}text-green-600{% elif post.sentiment_score >= 50 %}text-yellow-600{% else %}text-red-600{% endif %}">
-                        {{ post.sentiment_score }}/100
-                    </span>
-                </div>
-            </div>
-            {% if post.warnings %}
-            <div class="mt-2">
-                <div class="text-xs font-medium text-red-600 mb-1">⚠️ Warnings:</div>
-                {% for warning in post.warnings %}
-                <div class="text-xs text-red-600">{{ warning }}</div>
-                {% endfor %}
-            </div>
-            {% endif %}
-        </div>
-        {% endif %}
-        
+        </div>  
         <div class="text-gray-900 text-lg mb-4">{{ post.content }}</div>
         <div class="flex items-center gap-6 text-gray-500 mb-4">
             <button class="like-btn flex items-center gap-1 hover:text-green-600 transition {% if post.liked %}text-green-600{% endif %}" data-liked="{{ 'true' if post.liked else 'false' }}">

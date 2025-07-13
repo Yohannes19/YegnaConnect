@@ -1,3 +1,6 @@
 .env
 vienv/
+__pycache__/
+* .pyc 
+
 
