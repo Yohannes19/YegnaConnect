@@ -46,16 +46,40 @@ def feed_page(request: Request, current_user: str = Depends(get_current_user), c
     })
 
 @router.post("/posts/create")
-def create_post(content: str = Form(...), category_id: Optional[int] = Form(None), current_user_obj: User = Depends(get_current_user_obj)):
+async def create_post(content: str = Form(...), category_id: Optional[int] = Form(None), current_user_obj: User = Depends(get_current_user_obj)):
     if not current_user_obj:
         raise HTTPException(status_code=401, detail="Not authenticated")
     
+    if not content.strip():
+        raise HTTPException(status_code=400, detail="Post content cannot be empty")
+    
     db = next(get_db())
     try:
-        post = PostService.create_post(db, content, current_user_obj.id, category_id)
+        # Use AI analysis for post creation
+        result = await PostService.create_post_with_ai_analysis(db, content.strip(), current_user_obj.id, category_id)
+        
+        # Check if content is appropriate
+        if not result["is_appropriate"]:
+            return JSONResponse({
+                "success": False,
+                "message": "Post blocked: Content appears to be inappropriate",
+                "warnings": result["warnings"],
+                "redirect": "/feed"
+            }, status_code=400)
+        
+        # If there are warnings, show them but allow the post
+        if result["warnings"]:
+            return JSONResponse({
+                "success": True,
+                "message": "Post created with warnings",
+                "warnings": result["warnings"],
+                "redirect": "/feed"
+            })
+        
         return RedirectResponse(url="/feed", status_code=303)
+        
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Failed to create post")
+        raise HTTPException(status_code=500, detail=f"Failed to create post: {str(e)}")
 
 @router.post("/posts/{post_id}/like")
 def like_post(post_id: int, current_user_obj: User = Depends(get_current_user_obj), db: Session = Depends(get_db)):
@@ -76,17 +100,41 @@ def unlike_post(post_id: int, current_user_obj: User = Depends(get_current_user_
     return JSONResponse({"message": "Post unliked"})
 
 @router.post("/posts/{post_id}/comments")
-def create_comment(post_id: int, content: str = Form(...), current_user_obj: User = Depends(get_current_user_obj), db: Session = Depends(get_db)):
+async def create_comment(post_id: int, content: str = Form(...), current_user_obj: User = Depends(get_current_user_obj), db: Session = Depends(get_db)):
     if not current_user_obj:
         raise HTTPException(status_code=401, detail="Not authenticated")
     if not content.strip():
         raise HTTPException(status_code=400, detail="Comment content cannot be empty")
     
     try:
-        comment = PostService.create_comment(db, content.strip(), current_user_obj.id, post_id)
-        return JSONResponse({"message": "Comment created", "comment_id": comment.id})
+        # Use AI analysis for comment creation
+        result = await PostService.create_comment_with_ai_analysis(db, content.strip(), current_user_obj.id, post_id)
+        
+        # Check if content is appropriate
+        if not result["is_appropriate"]:
+            return JSONResponse({
+                "success": False,
+                "message": "Comment blocked: Content appears to be inappropriate",
+                "warnings": result["warnings"]
+            }, status_code=400)
+        
+        # If there are warnings, show them but allow the comment
+        if result["warnings"]:
+            return JSONResponse({
+                "success": True,
+                "message": "Comment created with warnings",
+                "comment_id": result["comment"].id,
+                "warnings": result["warnings"]
+            })
+        
+        return JSONResponse({
+            "success": True,
+            "message": "Comment created",
+            "comment_id": result["comment"].id
+        })
+        
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Failed to create comment")
+        raise HTTPException(status_code=500, detail=f"Failed to create comment: {str(e)}")
 
 @router.get("/posts/{post_id}/comments")
 def get_comments(post_id: int, db: Session = Depends(get_db)):
@@ -126,7 +174,7 @@ def unlike_comment(comment_id: int, current_user_obj: User = Depends(get_current
     return JSONResponse({"message": "Comment unliked"}) 
 
 @router.post("/comments/{comment_id}/reply")
-def create_reply(comment_id: int, content: str = Form(...), current_user_obj: User = Depends(get_current_user_obj), db: Session = Depends(get_db)):
+async def create_reply(comment_id: int, content: str = Form(...), current_user_obj: User = Depends(get_current_user_obj), db: Session = Depends(get_db)):
     if not current_user_obj:
         raise HTTPException(status_code=401, detail="Not authenticated")
     if not content.strip():
@@ -136,10 +184,36 @@ def create_reply(comment_id: int, content: str = Form(...), current_user_obj: Us
     if not parent_comment:
         raise HTTPException(status_code=404, detail="Parent comment not found")
     try:
-        reply = PostService.create_reply(db, content.strip(), current_user_obj.id, parent_comment.post_id, comment_id)
-        return JSONResponse({"message": "Reply created", "reply_id": reply.id})
+        # Use AI analysis for reply creation
+        result = await PostService.create_comment_with_ai_analysis(db, content.strip(), current_user_obj.id, parent_comment.post_id)
+        result["comment"].parent_id = comment_id  # Set the parent_id for the reply
+        db.commit()
+        
+        # Check if content is appropriate
+        if not result["is_appropriate"]:
+            return JSONResponse({
+                "success": False,
+                "message": "Reply blocked: Content appears to be inappropriate",
+                "warnings": result["warnings"]
+            }, status_code=400)
+        
+        # If there are warnings, show them but allow the reply
+        if result["warnings"]:
+            return JSONResponse({
+                "success": True,
+                "message": "Reply created with warnings",
+                "reply_id": result["comment"].id,
+                "warnings": result["warnings"]
+            })
+        
+        return JSONResponse({
+            "success": True,
+            "message": "Reply created",
+            "reply_id": result["comment"].id
+        })
+        
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Failed to create reply")
+        raise HTTPException(status_code=500, detail=f"Failed to create reply: {str(e)}")
 
 @router.get("/comments/{comment_id}/replies")
 def get_replies(comment_id: int, current_user_obj: User = Depends(get_current_user_obj), db: Session = Depends(get_db)):

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, func
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, func, JSON
 from sqlalchemy.orm import relationship
 from . import Base
 
@@ -11,6 +11,13 @@ class Post(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     likes_count = Column(Integer, default=0)
     comments_count = Column(Integer, default=0)
+    
+    # AI Analysis Fields
+    ai_analysis = Column(JSON, nullable=True)  # Store complete AI analysis
+    moderation_score = Column(Integer, default=100)  # 0-100 score
+    sentiment_score = Column(Integer, default=50)  # 0-100 score
+    content_summary = Column(Text, nullable=True)  # AI-generated summary
+    is_ai_processed = Column(Integer, default=0)  # 0=False, 1=True
     
     # Relationships
     user = relationship("User", back_populates="posts")
@@ -38,6 +45,12 @@ class Comment(Base):
     parent_id = Column(Integer, ForeignKey("comments.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     likes_count = Column(Integer, default=0)
+    
+    # AI Analysis Fields for Comments
+    ai_analysis = Column(JSON, nullable=True)
+    moderation_score = Column(Integer, default=100)
+    sentiment_score = Column(Integer, default=50)
+    is_ai_processed = Column(Integer, default=0)
 
     # Relationships
     user = relationship("User", back_populates="comments")

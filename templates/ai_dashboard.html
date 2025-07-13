@@ -1,0 +1,281 @@
+{% extends "base.html" %}
+
+{% block title %}AI Dashboard - YegnaConnect{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">🤖 AI Dashboard</h1>
+            <p class="mt-2 text-gray-600">Explore AI-powered features and analyze your content</p>
+        </div>
+
+        <!-- AI Statistics Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="p-2 bg-blue-100 rounded-lg">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-500">Total Posts</p>
+                        <p class="text-2xl font-semibold text-gray-900">{{ total_posts }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="p-2 bg-green-100 rounded-lg">
+                        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-500">AI Processed</p>
+                        <p class="text-2xl font-semibold text-gray-900">{{ ai_processed_posts }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="p-2 bg-yellow-100 rounded-lg">
+                        <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-500">Processing Rate</p>
+                        <p class="text-2xl font-semibold text-gray-900">{{ ai_processing_rate }}%</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-lg shadow p-6">
+                <div class="flex items-center">
+                    <div class="p-2 bg-purple-100 rounded-lg">
+                        <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-500">Avg Moderation</p>
+                        <p class="text-2xl font-semibold text-gray-900">{{ avg_moderation_score }}/100</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Analysis Tools -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- Content Analysis Tool -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-medium text-gray-900">🔍 Content Analysis</h3>
+                    <p class="text-sm text-gray-600">Analyze your content for sentiment, moderation, and get AI recommendations</p>
+                </div>
+                <div class="p-6">
+                    <form id="contentAnalysisForm">
+                        <div class="mb-4">
+                            <label for="content" class="block text-sm font-medium text-gray-700 mb-2">Content to Analyze</label>
+                            <textarea id="content" name="content" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter your content here..."></textarea>
+                        </div>
+                        <button type="submit" class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition duration-200">
+                            Analyze Content
+                        </button>
+                    </form>
+                    <div id="analysisResults" class="mt-4 hidden">
+                        <!-- Results will be populated here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Content Summarization Tool -->
+            <div class="bg-white rounded-lg shadow">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h3 class="text-lg font-medium text-gray-900">📝 Content Summarization</h3>
+                    <p class="text-sm text-gray-600">Generate AI-powered summaries of your content</p>
+                </div>
+                <div class="p-6">
+                    <form id="summarizationForm">
+                        <div class="mb-4">
+                            <label for="contentToSummarize" class="block text-sm font-medium text-gray-700 mb-2">Content to Summarize</label>
+                            <textarea id="contentToSummarize" name="content" rows="4" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter content to summarize..."></textarea>
+                        </div>
+                        <button type="submit" class="w-full bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition duration-200">
+                            Generate Summary
+                        </button>
+                    </form>
+                    <div id="summarizationResults" class="mt-4 hidden">
+                        <!-- Results will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Posts with AI Analysis -->
+        <div class="bg-white rounded-lg shadow">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-medium text-gray-900">📊 Posts with AI Analysis</h3>
+                <p class="text-sm text-gray-600">Your posts that have been analyzed by AI</p>
+            </div>
+            <div class="p-6">
+                {% if posts_with_ai %}
+                    <div class="space-y-4">
+                        {% for post in posts_with_ai %}
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <div class="flex items-start justify-between">
+                                <div class="flex-1">
+                                    <p class="text-gray-900 mb-2">{{ post.content[:100] }}{% if post.content|length > 100 %}...{% endif %}</p>
+                                    <div class="flex items-center space-x-4 text-sm text-gray-500">
+                                        <span>Moderation: {{ post.moderation_score }}/100</span>
+                                        <span>Sentiment: {{ post.sentiment_score }}/100</span>
+                                        <span>{{ post.created_at.strftime('%B %d, %Y') }}</span>
+                                    </div>
+                                    {% if post.content_summary %}
+                                    <div class="mt-2 p-2 bg-gray-50 rounded">
+                                        <p class="text-sm text-gray-600"><strong>AI Summary:</strong> {{ post.content_summary }}</p>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                <div class="ml-4">
+                                    <button onclick="viewPostAnalysis({{ post.id }})" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                        View Analysis
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-8">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <h3 class="mt-2 text-sm font-medium text-gray-900">No AI Analysis Yet</h3>
+                        <p class="mt-1 text-sm text-gray-500">Start by creating posts and analyzing them with AI.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Content Analysis Form
+document.getElementById('contentAnalysisForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const content = document.getElementById('content').value;
+    const resultsDiv = document.getElementById('analysisResults');
+    
+    if (!content.trim()) {
+        alert('Please enter content to analyze');
+        return;
+    }
+    
+    try {
+        const formData = new FormData();
+        formData.append('content', content);
+        
+        const response = await fetch('/ai/analyze-post', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            const analysis = data.analysis;
+            resultsDiv.innerHTML = `
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h4 class="font-medium text-green-800 mb-2">Analysis Results</h4>
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                            <p><strong>Sentiment:</strong> ${analysis.sentiment.sentiment} (${Math.round(analysis.sentiment.sentiment_score * 100)}%)</p>
+                            <p><strong>Emotion:</strong> ${analysis.sentiment.emotion}</p>
+                            <p><strong>Moderation:</strong> ${analysis.moderation.is_appropriate ? 'Appropriate' : 'Inappropriate'}</p>
+                        </div>
+                        <div>
+                            <p><strong>Toxicity Score:</strong> ${Math.round(analysis.moderation.toxicity_score * 100)}%</p>
+                            <p><strong>Hate Speech Score:</strong> ${Math.round(analysis.moderation.hate_speech_score * 100)}%</p>
+                            <p><strong>Overall Score:</strong> ${Math.round(analysis.overall_score * 100)}%</p>
+                        </div>
+                    </div>
+                    ${analysis.recommendations.length > 0 ? `
+                        <div class="mt-3">
+                            <p class="font-medium text-green-800">Recommendations:</p>
+                            <ul class="list-disc list-inside text-sm text-green-700">
+                                ${analysis.recommendations.map(rec => `<li>${rec}</li>`).join('')}
+                            </ul>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            resultsDiv.classList.remove('hidden');
+        } else {
+            resultsDiv.innerHTML = `<div class="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">Analysis failed. Please try again.</div>`;
+            resultsDiv.classList.remove('hidden');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        resultsDiv.innerHTML = `<div class="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">Error analyzing content. Please try again.</div>`;
+        resultsDiv.classList.remove('hidden');
+    }
+});
+
+// Content Summarization Form
+document.getElementById('summarizationForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const content = document.getElementById('contentToSummarize').value;
+    const resultsDiv = document.getElementById('summarizationResults');
+    
+    if (!content.trim()) {
+        alert('Please enter content to summarize');
+        return;
+    }
+    
+    try {
+        const formData = new FormData();
+        formData.append('content', content);
+        
+        const response = await fetch('/ai/summarize-content', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            resultsDiv.innerHTML = `
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 class="font-medium text-blue-800 mb-2">Summary</h4>
+                    <p class="text-blue-700 mb-2">${data.summary}</p>
+                    <div class="text-sm text-blue-600">
+                        <p>Original length: ${data.original_length} characters</p>
+                        <p>Summary length: ${data.summary_length} characters</p>
+                        <p>Compression ratio: ${Math.round(data.compression_ratio * 100)}%</p>
+                    </div>
+                </div>
+            `;
+            resultsDiv.classList.remove('hidden');
+        } else {
+            resultsDiv.innerHTML = `<div class="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">Summarization failed. Please try again.</div>`;
+            resultsDiv.classList.remove('hidden');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        resultsDiv.innerHTML = `<div class="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">Error summarizing content. Please try again.</div>`;
+        resultsDiv.classList.remove('hidden');
+    }
+});
+
+function viewPostAnalysis(postId) {
+    // Implement view post analysis functionality
+    window.location.href = `/feed?post=${postId}`;
+}
+</script>
+{% endblock %} 

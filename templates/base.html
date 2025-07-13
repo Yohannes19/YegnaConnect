@@ -21,6 +21,7 @@
                     <a href="/feed" class="text-gray-700 hover:text-green-600 font-medium">Feed</a>
                     <a href="/category/" class="text-gray-700 hover:text-green-600 font-medium">Categories</a>
                     <a href="/search" class="text-gray-700 hover:text-green-600 font-medium">Search</a>
+                    <a href="/ai/ai-dashboard" class="text-gray-700 hover:text-green-600 font-medium">🤖 AI</a>
                     <a href="/profile/{{ current_user.username }}" class="text-gray-700 hover:text-green-600 font-medium">Profile</a>
                     <div class="flex items-center space-x-2">
                         <img src="https://ui-avatars.com/api/?name={{ current_user.username }}&background=E5F4ED&color=2F855A" alt="Avatar" class="w-8 h-8 rounded-full">
@@ -48,6 +49,7 @@
             <a href="/feed" class="block text-gray-700 hover:text-green-600 font-medium">Feed</a>
             <a href="/category/" class="block text-gray-700 hover:text-green-600 font-medium">Categories</a>
             <a href="/search" class="block text-gray-700 hover:text-green-600 font-medium">Search</a>
+            <a href="/ai/ai-dashboard" class="block text-gray-700 hover:text-green-600 font-medium">🤖 AI</a>
             <a href="/profile/{{ current_user.username }}" class="block text-gray-700 hover:text-green-600 font-medium">Profile</a>
             <a href="/logout" class="block text-red-600 hover:text-red-700 font-medium">Logout</a>
             {% else %}

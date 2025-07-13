@@ -5,13 +5,12 @@ class Settings(BaseSettings):
     DATABASE_URL: str
     
     JWT_SECRET_KEY: str
-    JWT_ALGORITHM: str = "HS256"
-    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    JWT_ALGORITHM: str 
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int
     
-    AI_HF_API_KEY: Optional[str] = None  # Hugging Face API key
-    AI_OPENAI_API_KEY: Optional[str] = None  # OpenAI API key
+    AI_HF_API_KEY: Optional[str] = None  
+    AI_OPENAI_API_KEY: Optional[str] = None  
     
-    # Redis Configuration (optional)
     REDIS_URL: Optional[str] = None
 
     class Config:
